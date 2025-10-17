@@ -1,11 +1,6 @@
-# .github/workflows/keepalive.yml
-# This workflow sends a simple request to your Supabase public table once a day to keep the project active.
-name: supabase-keepalive
-
+name: Keep Supabase Alive
 on:
-  schedule:
-    - cron: '0 0 * * *'   # runs daily at 00:00 UTC (you can change the schedule)
-  workflow_dispatch:     # allows manual run from GitHub UI
+  workflow_dispatch:
 
 jobs:
   keepalive:
@@ -14,16 +9,19 @@ jobs:
       - name: Send keepalive request to Supabase REST endpoint
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          # Replace 'keepalive' in the URL below if you used a different table name.
-          URL="$SUPABASE_URL/rest/v1/keepalive?select=*&limit=1"
-          # Use both Authorization and apikey headers; anon key is safe as a repo secret.
-          echo "Pinging $URL"
-          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \\
-            -H "apikey: $SUPABASE_ANON_KEY" \\
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \\
-            "$URL" || true)
-          echo "HTTP status: $HTTP_CODE"
-          # Always succeed so this workflow doesn't fail if there is a temporary error.
-          exit 0
+          # Fail fast if secrets are missing
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_KEY}" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_KEY"
+            exit 1
+          fi
+
+          # Use -G and --data-urlencode so the shell doesn't split on & or expand *
+          # Remove a trailing slash from SUPABASE_URL if present with ${VAR%/}
+          curl -sS -G "${SUPABASE_URL%/}/rest/v1/keepalive" \
+            --data-urlencode "select=*" \
+            --data-urlencode "limit=1" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -o /dev/null -w "HTTP status: %{http_code}\n"
