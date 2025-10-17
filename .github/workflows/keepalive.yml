@@ -2,7 +2,7 @@ name: Keep Supabase Awake
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '0 0 * * *' # Runs daily at midnight UTC; adjust as needed
   workflow_dispatch:
 
 jobs:
@@ -12,20 +12,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Curl keepalive
+      - name: Insert keepalive record to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          TIMESTAMP=$(date +%s)
+          TS=$(date --utc +%Y-%m-%dT%H:%M:%SZ)
           curl -sS \
+            -X POST \
             -H "apikey: $SUPABASE_KEY" \
             -H "Authorization: Bearer $SUPABASE_KEY" \
             -H "Content-Type: application/json" \
-            "$SUPABASE_URL/rest/v1/keepalive" \
-            -d '{"payload":"ping","ts":'\"${TIMESTAMP}\"'}' \
-            -o /dev/null -w "HTTP %{http_code}\n"
-
-      - name: Verify response
-        run: echo "Ping attempted to keepalive endpoint"
-
+            -d "{\"timestamp\":\"$TS\"}" \
+            "$SUPABASE_URL/rest/v1/keepalive"
