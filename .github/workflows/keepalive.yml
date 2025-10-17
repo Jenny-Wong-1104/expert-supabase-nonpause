@@ -1,0 +1,29 @@
+# .github/workflows/keepalive.yml
+# This workflow sends a simple request to your Supabase public table once a day to keep the project active.
+name: supabase-keepalive
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # runs daily at 00:00 UTC (you can change the schedule)
+  workflow_dispatch:     # allows manual run from GitHub UI
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keepalive request to Supabase REST endpoint
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # Replace 'keepalive' in the URL below if you used a different table name.
+          URL="$SUPABASE_URL/rest/v1/keepalive?select=*&limit=1"
+          # Use both Authorization and apikey headers; anon key is safe as a repo secret.
+          echo "Pinging $URL"
+          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \\
+            -H "apikey: $SUPABASE_ANON_KEY" \\
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \\
+            "$URL" || true)
+          echo "HTTP status: $HTTP_CODE"
+          # Always succeed so this workflow doesn't fail if there is a temporary error.
+          exit 0
