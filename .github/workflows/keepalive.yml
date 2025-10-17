@@ -1,31 +1,31 @@
 name: Keep Supabase Awake
 
 on:
-schedule:
-- cron: '0 0 * * *' # daily at midnight UTC; adjust as needed
-workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch:
 
 jobs:
-ping:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout repository
-uses: actions/checkout@v3
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-text
-  - name: Curl keepalive
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-    run: |
-      TIMESTAMP=$(date +%s)
-      curl -sS \
-        -H "apikey: $SUPABASE_KEY" \
-        -H "Authorization: Bearer $SUPABASE_KEY" \
-        -H "Content-Type: application/json" \
-        "$SUPABASE_URL/rest/v1/keepalive" \
-        -d '{"payload":"ping","ts":'\"${TIMESTAMP}\"'}' \
-        -o /dev/null -w "HTTP %{http_code}\n"
+      - name: Curl keepalive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          curl -sS \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            "$SUPABASE_URL/rest/v1/keepalive" \
+            -d '{"payload":"ping","ts":'\"${TIMESTAMP}\"'}' \
+            -o /dev/null -w "HTTP %{http_code}\n"
 
-  - name: Verify response
-    run: echo "Ping attempted to keepalive endpoint"
+      - name: Verify response
+        run: echo "Ping attempted to keepalive endpoint"
+
