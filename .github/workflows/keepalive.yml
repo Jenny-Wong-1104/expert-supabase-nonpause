@@ -1,27 +1,31 @@
-name: Keep Supabase Alive
+name: Keep Supabase Awake
+
 on:
-  workflow_dispatch:
+schedule:
+- cron: '0 0 * * *' # daily at midnight UTC; adjust as needed
+workflow_dispatch:
 
 jobs:
-  keepalive:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send keepalive request to Supabase REST endpoint
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: |
-          # Fail fast if secrets are missing
-          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_KEY}" ]; then
-            echo "Missing SUPABASE_URL or SUPABASE_KEY"
-            exit 1
-          fi
+ping:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v3
 
-          # Use -G and --data-urlencode so the shell doesn't split on & or expand *
-          # Remove a trailing slash from SUPABASE_URL if present with ${VAR%/}
-          curl -sS -G "${SUPABASE_URL%/}/rest/v1/keepalive" \
-            --data-urlencode "select=*" \
-            --data-urlencode "limit=1" \
-            -H "apikey: ${SUPABASE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_KEY}" \
-            -o /dev/null -w "HTTP status: %{http_code}\n"
+text
+  - name: Curl keepalive
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+    run: |
+      TIMESTAMP=$(date +%s)
+      curl -sS \
+        -H "apikey: $SUPABASE_KEY" \
+        -H "Authorization: Bearer $SUPABASE_KEY" \
+        -H "Content-Type: application/json" \
+        "$SUPABASE_URL/rest/v1/keepalive" \
+        -d '{"payload":"ping","ts":'\"${TIMESTAMP}\"'}' \
+        -o /dev/null -w "HTTP %{http_code}\n"
+
+  - name: Verify response
+    run: echo "Ping attempted to keepalive endpoint"
